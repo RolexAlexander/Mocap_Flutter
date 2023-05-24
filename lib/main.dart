@@ -9,9 +9,11 @@ import 'package:camera/camera.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final cameras = await availableCameras();
-  final firstCamera = cameras.first;
+  final frontCamera = cameras.firstWhere(
+    (camera) => camera.lensDirection == CameraLensDirection.front,
+  );
 
-  runApp(MyApp(camera: firstCamera));
+  runApp(MyApp(camera: frontCamera));
 }
 
 class MyApp extends StatelessWidget {
