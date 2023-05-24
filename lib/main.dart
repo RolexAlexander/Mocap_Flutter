@@ -8,7 +8,11 @@ import 'package:camera/camera.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Retrieve available cameras
   final cameras = await availableCameras();
+  
+  // Select the front camera
   final frontCamera = cameras.firstWhere(
     (camera) => camera.lensDirection == CameraLensDirection.front,
   );
@@ -52,7 +56,11 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
+    
+    // Initialize the camera controller with the selected camera
     _controller = CameraController(widget.camera, ResolutionPreset.medium);
+    
+    // Initialize the camera controller asynchronously
     _initializeControllerFuture = _controller.initialize();
   }
 
@@ -65,10 +73,12 @@ class _MyHomePageState extends State<MyHomePage> {
   Future<void> _getImageFromCamera() async {
     try {
       await _initializeControllerFuture;
-
+      
+      // Capture an image using the camera controller
       final image = await _controller.takePicture();
 
       setState(() {
+        // Store the captured image file
         _selectedImage = File(image.path);
       });
     } catch (e) {
@@ -78,9 +88,14 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<void> _convertToBase64() async {
     if (_selectedImage != null) {
+      // Read the image file as bytes
       final bytes = await _selectedImage!.readAsBytes();
+      
+      // Encode the image bytes to base64
       final base64Image = base64Encode(bytes);
+      
       setState(() {
+        // Store the base64-encoded image string
         _base64Image = base64Image;
       });
     }
@@ -100,12 +115,14 @@ class _MyHomePageState extends State<MyHomePage> {
               future: _initializeControllerFuture,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.done) {
+                  // Display the camera preview once the controller is initialized
                   return Container(
                     width: 300,
                     height: 300,
                     child: CameraPreview(_controller),
                   );
                 } else {
+                  // Show a loading indicator while the controller is being initialized
                   return CircularProgressIndicator();
                 }
               },
