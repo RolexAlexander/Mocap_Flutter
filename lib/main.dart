@@ -4,12 +4,21 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:mime/mime.dart';
+import 'package:camera/camera.dart';
 
-void main() {
-  runApp(MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final cameras = await availableCameras();
+  final firstCamera = cameras.first;
+
+  runApp(MyApp(camera: firstCamera));
 }
 
 class MyApp extends StatelessWidget {
+  final CameraDescription camera;
+
+  const MyApp({required this.camera});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -17,26 +26,51 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: MyHomePage(),
+      home: MyHomePage(camera: camera),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
+  final CameraDescription camera;
+
+  const MyHomePage({required this.camera});
+
   @override
   _MyHomePageState createState() => _MyHomePageState();
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  late CameraController _controller;
+  Future<void>? _initializeControllerFuture;
+
   File? _selectedImage;
   String? _base64Image;
 
-  Future<void> _getImageFromGallery() async {
-    final pickedFile = await ImagePicker().getImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
+  @override
+  void initState() {
+    super.initState();
+    _controller = CameraController(widget.camera, ResolutionPreset.medium);
+    _initializeControllerFuture = _controller.initialize();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _getImageFromCamera() async {
+    try {
+      await _initializeControllerFuture;
+
+      final image = await _controller.takePicture();
+
       setState(() {
-        _selectedImage = File(pickedFile.path);
+        _selectedImage = File(image.path);
       });
+    } catch (e) {
+      print('Error occurred: $e');
     }
   }
 
@@ -60,12 +94,24 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            _selectedImage != null
-                ? Image.file(_selectedImage!)
-                : Icon(Icons.image),
+            FutureBuilder<void>(
+              future: _initializeControllerFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.done) {
+                  return Container(
+                    width: 300,
+                    height: 300,
+                    child: CameraPreview(_controller),
+                  );
+                } else {
+                  return CircularProgressIndicator();
+                }
+              },
+            ),
+            SizedBox(height: 16),
             ElevatedButton(
-              onPressed: _getImageFromGallery,
-              child: Text('Select Image'),
+              onPressed: _getImageFromCamera,
+              child: Text('Capture Image'),
             ),
             ElevatedButton(
               onPressed: _convertToBase64,
