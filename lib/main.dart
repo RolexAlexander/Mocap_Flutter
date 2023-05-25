@@ -101,7 +101,7 @@ class _MyHomePageState extends State<MyHomePage> {
       });
       
       // Send the POST request with the base64 image
-      _sendImageRequest(base64Image);
+      _sendImageRequest(_base64Image!);
     }
   }
   
