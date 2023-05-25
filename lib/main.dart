@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:mime/mime.dart';
+import 'package:http/http.dart' as http;
 import 'package:camera/camera.dart';
 
 void main() async {
@@ -98,6 +99,33 @@ class _MyHomePageState extends State<MyHomePage> {
         // Store the base64-encoded image string
         _base64Image = base64Image;
       });
+      
+      // Send the POST request with the base64 image
+      _sendImageRequest(base64Image);
+    }
+  }
+  
+  Future<void> _sendImageRequest(String base64Image) async {
+    var headers = {
+      'Authorization': 'Token 392f1eb645b5695c7932aec4ef6b1c1f8c00d77f3879829acf38eef20458e879',
+      'Content-Type': 'application/json',
+    };
+    
+    var url = Uri.parse('https://5ed4-190-93-37-91.ngrok-free.app/js_public/walker_callback/82cdbffa-bb03-42b6-a553-b775961eabc3/fa709d99-9366-49ca-8b77-f6ffeaefea17?key=3a7fdc0069733f5e12e16f668f5da103');
+    
+    var body = jsonEncode({
+      "name": "interact",
+      "ctx": {"image_data": base64Image},
+      "_req_ctx": {},
+      "snt": "urn:uuid:fc4bdf0f-ccb6-4f86-bdb6-1787f379fdf5"
+    });
+    
+    try {
+      var response = await http.post(url, headers: headers, body: body);
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+    } catch (e) {
+      print('Error occurred: $e');
     }
   }
 
