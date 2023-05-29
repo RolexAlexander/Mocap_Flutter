@@ -107,11 +107,11 @@ class _MyHomePageState extends State<MyHomePage> {
   
   void _sendImageRequest(String base64Image) {
     var headers = {
-      'Authorization': 'Token 392f1eb645b5695c7932aec4ef6b1c1f8c00d77f3879829acf38eef20458e879',
+      'Authorization': 'Token 2ef828b2935f311fdec9d6b1bed469e467dbf6b2b7538b63ee8f5320c8a47848',
       'Content-Type': 'application/json',
     };
     
-    var url = Uri.parse('https://5ed4-190-93-37-91.ngrok-free.app/js_public/walker_callback/82cdbffa-bb03-42b6-a553-b775961eabc3/fa709d99-9366-49ca-8b77-f6ffeaefea17?key=3a7fdc0069733f5e12e16f668f5da103');
+    var url = Uri.parse('https://0ece-190-93-37-191.ngrok-free.app/js_public/walker_callback/82cdbffa-bb03-42b6-a553-b775961eabc3/ca639c31-e3f3-4a1e-a6ad-ebc4da6c82cd?key=3a7fdc0069733f5e12e16f668f5da103');
     
     var body = jsonEncode({
       "name": "interact",
