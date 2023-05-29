@@ -23,10 +23,12 @@ class _HomeState extends State<Home> {
   late File _selectedImage;
   String _base64Image = "";
 
+  List<CameraDescription>? cameras;
+
   @override
   void initState() {
     super.initState();
-    loadCamera();
+    setupCamera();
     startRequestTimer();
   }
 
@@ -37,17 +39,11 @@ class _HomeState extends State<Home> {
     super.dispose();
   }
 
-  void loadCamera() {
+  Future<void> setupCamera() async {
+    cameras = await availableCameras();
     cameraController = CameraController(cameras![0], ResolutionPreset.medium);
-    cameraController!.initialize().then((_) {
-      if (mounted) {
-        setState(() {
-          cameraController!.startImageStream((imageStream) {
-            cameraImage = imageStream;
-          });
-        });
-      }
-    });
+    await cameraController!.initialize();
+    setState(() {});
   }
 
   void startRequestTimer() {
@@ -60,7 +56,6 @@ class _HomeState extends State<Home> {
 
   void _getImageFromCamera() async {
     try {
-      await cameraController!.initialize();
       final image = await cameraController!.takePicture();
 
       setState(() {
@@ -105,7 +100,7 @@ class _HomeState extends State<Home> {
         "snt": "urn:uuid:82cdbffa-bb03-42b6-a553-b775961eabc3"
       });
       var response = await http.post(url, body: body, headers: headers);
-      print('Request response: $response');
+      print('Request response: ${response.body}');
     } catch (e) {
       print('Error occurred: $e');
     }
@@ -113,6 +108,14 @@ class _HomeState extends State<Home> {
 
   @override
   Widget build(BuildContext context) {
+    if (cameras == null || !cameraController!.value.isInitialized) {
+      return Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(title: Text("Live Emotion Detection App")),
       body: Column(
@@ -122,16 +125,13 @@ class _HomeState extends State<Home> {
             child: Container(
               height: MediaQuery.of(context).size.height * 0.7,
               width: MediaQuery.of(context).size.width,
-              child: !cameraController!.value.isInitialized
-                  ? Container()
-                  : AspectRatio(
-                      aspectRatio: cameraController!.value.aspectRatio,
-                      child: CameraPreview(cameraController!),
-                    ),
+              child: AspectRatio(
+                aspectRatio: cameraController!.value.aspectRatio,
+                child: CameraPreview(cameraController!),
+              ),
             ),
           ),
-          Text(output,
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 30)),
+          Text(output, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 30)),
         ],
       ),
     );
