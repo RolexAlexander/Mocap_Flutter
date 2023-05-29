@@ -8,6 +8,7 @@ import 'package:flutter_tflite/flutter_tflite.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:mime/mime.dart';
+import 'dart:async';
 
 class Home extends StatefulWidget {
   const Home({Key? key}) : super(key: key);
@@ -21,6 +22,7 @@ class _HomeState extends State<Home> {
   CameraController? cameracontroller;
   String output = "";
   late File _selectedImage;
+  Timer? timer;
   var requestresponse;
   var count = 0;
   var selectedimage;
@@ -42,9 +44,11 @@ class _HomeState extends State<Home> {
       } else {
         setState(() {
           cameracontroller!.startImageStream((imageStream) {
-            cameraImage = imageStream;
-            // sendPostRequest;
-            runModel();
+            count = count + 1;
+            if (count % 100 == 0) {
+              print("object");
+              runModel();
+            }
           });
         });
       }
@@ -53,27 +57,29 @@ class _HomeState extends State<Home> {
 
   runModel() async {
     if (cameraImage != null) {
-      // var predictions = await Tflite.runModelOnFrame(
-      //     bytesList: cameraImage!.planes.map((plane) {
-      //       return plane.bytes;
-      //     }).toList(),
-      //     imageHeight: cameraImage!.height,
-      //     imageWidth: cameraImage!.width,
-      //     imageMean: 127.5,
-      //     imageStd: 127.5,
-      //     rotation: 90,
-      //     threshold: 0.1,
-      //     asynch: true);
-      // predictions!.forEach((element) {
-      //   setState(() {
-      //     output = element["label"];
-      //   });
-      // });
-      count = count + 1;
-      if (count % 10 == 0) {
-        _getImageFromCamera();
-        // sendPostRequest();
-      }
+      var predictions = await Tflite.runModelOnFrame(
+          bytesList: cameraImage!.planes.map((plane) {
+            return plane.bytes;
+          }).toList(),
+          imageHeight: cameraImage!.height,
+          imageWidth: cameraImage!.width,
+          imageMean: 127.5,
+          imageStd: 127.5,
+          rotation: 90,
+          threshold: 0.1,
+          asynch: true);
+      predictions!.forEach((element) {
+        setState(() {
+          output = element["label"];
+        });
+      });
+      print("PPPPPPPpppppppppreeeeeeeeeeedictionnnnnnnnnnnnnnnn");
+      print(predictions);
+      // count = count + 1;
+      // if (count % 10 == 0) {
+      //   _getImageFromCamera();
+      //   // sendPostRequest();
+      // }
     }
   }
 
