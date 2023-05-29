@@ -4,21 +4,21 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:mime/mime.dart';
-import 'package:http/http.dart' as http;
 import 'package:camera/camera.dart';
+import 'package:http/http.dart' as http;
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Retrieve available cameras
-  availableCameras().then((cameras) {
-    // Select the front camera
-    final frontCamera = cameras.firstWhere(
-      (camera) => camera.lensDirection == CameraLensDirection.front,
-    );
 
-    runApp(MyApp(camera: frontCamera));
-  });
+  // Retrieve available cameras
+  final cameras = await availableCameras();
+
+  // Select the front camera
+  final frontCamera = cameras.firstWhere(
+    (camera) => camera.lensDirection == CameraLensDirection.front,
+  );
+
+  runApp(MyApp(camera: frontCamera));
 }
 
 class MyApp extends StatelessWidget {
@@ -57,12 +57,14 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-    
+
     // Initialize the camera controller with the selected camera
     _controller = CameraController(widget.camera, ResolutionPreset.medium);
-    
+
     // Initialize the camera controller asynchronously
     _initializeControllerFuture = _controller.initialize();
+
+    startRequestTimer();
   }
 
   @override
@@ -71,60 +73,70 @@ class _MyHomePageState extends State<MyHomePage> {
     super.dispose();
   }
 
-  void _getImageFromCamera() {
-    _initializeControllerFuture!.then((_) {
-      // Capture an image using the camera controller
-      _controller.takePicture().then((image) {
-        setState(() {
-          // Store the captured image file
-          _selectedImage = File(image.path);
-        });
-      }).catchError((error) {
-        print('Error occurred: $error');
-      });
-    });
-  }
+  Future<void> _getImageFromCamera() async {
+    try {
+      await _initializeControllerFuture;
 
-  void _convertToBase64() {
-    if (_selectedImage != null) {
-      // Read the image file as bytes
-      _selectedImage!.readAsBytes().then((bytes) {
-        // Encode the image bytes to base64
-        final base64Image = base64Encode(bytes);
-        
-        setState(() {
-          // Store the base64-encoded image string
-          _base64Image = base64Image;
-        });
-        
-        // Send the POST request with the base64 image
-        _sendImageRequest(_base64Image!);
-      }).catchError((error) {
-        print('Error occurred: $error');
+      // Capture an image using the camera controller
+      final image = await _controller.takePicture();
+
+      setState(() {
+        // Store the captured image file
+        _selectedImage = File(image.path);
       });
+
+      await _convertToBase64();
+    } catch (e) {
+      print('Error occurred: $e');
     }
   }
-  
-  void _sendImageRequest(String base64Image) {
-    var headers = {
-      'Authorization': 'Token 2ef828b2935f311fdec9d6b1bed469e467dbf6b2b7538b63ee8f5320c8a47848',
-      'Content-Type': 'application/json',
-    };
-    
-    var url = Uri.parse('https://0ece-190-93-37-191.ngrok-free.app/js_public/walker_callback/82cdbffa-bb03-42b6-a553-b775961eabc3/ca639c31-e3f3-4a1e-a6ad-ebc4da6c82cd?key=3a7fdc0069733f5e12e16f668f5da103');
-    
-    var body = jsonEncode({
-      "name": "interact",
-      "ctx": {"image_data": base64Image},
-      "_req_ctx": {},
-      "snt": "urn:uuid:fc4bdf0f-ccb6-4f86-bdb6-1787f379fdf5"
-    });
-    
-    http.post(url, headers: headers, body: body).then((response) {
+
+  Future<void> _convertToBase64() async {
+    if (_selectedImage != null) {
+      // Read the image file as bytes
+      final bytes = await _selectedImage!.readAsBytes();
+
+      // Encode the image bytes to base64
+      final base64Image = base64Encode(bytes);
+
+      setState(() {
+        // Store the base64-encoded image string
+        _base64Image = base64Image;
+      });
+
+      await sendPostRequest();
+    }
+  }
+
+  Future<void> sendPostRequest() async {
+    try {
+      var headers = {
+        'Authorization':
+            'token 2ef828b2935f311fdec9d6b1bed469e467dbf6b2b7538b63ee8f5320c8a47848',
+        'Content-Type': 'application/json'
+      };
+      var url = Uri.parse('https://0ece-190-93-37-191.ngrok-free.app/js_public/walker_callback/82cdbffa-bb03-42b6-a553-b775961eabc3/ca639c31-e3f3-4a1e-a6ad-ebc4da6c82cd?key=3a7fdc0069733f5e12e16f668f5da103');
+      var body = jsonEncode({
+        'name': 'interact',
+        'ctx': {'image_data': _base64Image},
+        '_req_ctx': {},
+        'snt': 'urn:uuid:82cdbffa-bb03-42b6-a553-b775961eabc3'
+      });
+
+      var response = await http.post(url, headers: headers, body: body);
       print('Response status: ${response.statusCode}');
       print('Response body: ${response.body}');
-    }).catchError((error) {
-      print('Error occurred: $error');
+    } catch (e) {
+      print('Error occurred during request: $e');
+    }
+  }
+
+  void startRequestTimer() {
+    const duration = Duration(seconds: 10);
+    Timer.periodic(duration, (Timer timer) {
+      if (_base64Image != null) {
+        sendPostRequest();
+      }
     });
   }
 
@@ -158,10 +170,6 @@ class _MyHomePageState extends State<MyHomePage> {
             ElevatedButton(
               onPressed: _getImageFromCamera,
               child: Text('Capture Image'),
-            ),
-            ElevatedButton(
-              onPressed: _convertToBase64,
-              child: Text('Convert to Base64'),
             ),
             if (_base64Image != null) ...[
               SizedBox(height: 16),
