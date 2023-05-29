@@ -7,18 +7,18 @@ import 'package:mime/mime.dart';
 import 'package:http/http.dart' as http;
 import 'package:camera/camera.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
   
   // Retrieve available cameras
-  final cameras = await availableCameras();
-  
-  // Select the front camera
-  final frontCamera = cameras.firstWhere(
-    (camera) => camera.lensDirection == CameraLensDirection.front,
-  );
+  availableCameras().then((cameras) {
+    // Select the front camera
+    final frontCamera = cameras.firstWhere(
+      (camera) => camera.lensDirection == CameraLensDirection.front,
+    );
 
-  runApp(MyApp(camera: frontCamera));
+    runApp(MyApp(camera: frontCamera));
+  });
 }
 
 class MyApp extends StatelessWidget {
@@ -71,41 +71,41 @@ class _MyHomePageState extends State<MyHomePage> {
     super.dispose();
   }
 
-  Future<void> _getImageFromCamera() async {
-    try {
-      await _initializeControllerFuture;
-      
+  void _getImageFromCamera() {
+    _initializeControllerFuture!.then((_) {
       // Capture an image using the camera controller
-      final image = await _controller.takePicture();
-
-      setState(() {
-        // Store the captured image file
-        _selectedImage = File(image.path);
+      _controller.takePicture().then((image) {
+        setState(() {
+          // Store the captured image file
+          _selectedImage = File(image.path);
+        });
+      }).catchError((error) {
+        print('Error occurred: $error');
       });
-    } catch (e) {
-      print('Error occurred: $e');
-    }
+    });
   }
 
-  Future<void> _convertToBase64() async {
+  void _convertToBase64() {
     if (_selectedImage != null) {
       // Read the image file as bytes
-      final bytes = await _selectedImage!.readAsBytes();
-      
-      // Encode the image bytes to base64
-      final base64Image = base64Encode(bytes);
-      
-      setState(() {
-        // Store the base64-encoded image string
-        _base64Image = base64Image;
+      _selectedImage!.readAsBytes().then((bytes) {
+        // Encode the image bytes to base64
+        final base64Image = base64Encode(bytes);
+        
+        setState(() {
+          // Store the base64-encoded image string
+          _base64Image = base64Image;
+        });
+        
+        // Send the POST request with the base64 image
+        _sendImageRequest(_base64Image!);
+      }).catchError((error) {
+        print('Error occurred: $error');
       });
-      
-      // Send the POST request with the base64 image
-      _sendImageRequest(_base64Image!);
     }
   }
   
-  Future<void> _sendImageRequest(String base64Image) async {
+  void _sendImageRequest(String base64Image) {
     var headers = {
       'Authorization': 'Token 392f1eb645b5695c7932aec4ef6b1c1f8c00d77f3879829acf38eef20458e879',
       'Content-Type': 'application/json',
@@ -120,13 +120,12 @@ class _MyHomePageState extends State<MyHomePage> {
       "snt": "urn:uuid:fc4bdf0f-ccb6-4f86-bdb6-1787f379fdf5"
     });
     
-    try {
-      var response = await http.post(url, headers: headers, body: body);
+    http.post(url, headers: headers, body: body).then((response) {
       print('Response status: ${response.statusCode}');
       print('Response body: ${response.body}');
-    } catch (e) {
-      print('Error occurred: $e');
-    }
+    }).catchError((error) {
+      print('Error occurred: $error');
+    });
   }
 
   @override
