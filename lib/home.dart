@@ -54,7 +54,7 @@ class _HomeState extends State<Home> {
     });
   }
 
-  void _getImageFromCamera() async {
+  Future<void> _getImageFromCamera() async {
     try {
       final image = await cameraController!.takePicture();
 
@@ -67,7 +67,7 @@ class _HomeState extends State<Home> {
     }
   }
 
-  void _convertToBase64() async {
+  Future<void> _convertToBase64() async {
     if (_selectedImage != null) {
       try {
         final bytes = await _selectedImage.readAsBytes();
@@ -77,18 +77,18 @@ class _HomeState extends State<Home> {
           _base64Image = base64Image;
         });
 
-        sendPostRequest();
+        await sendPostRequest();
       } catch (e) {
         print('Error occurred: $e');
       }
     }
   }
 
-  void sendPostRequest() async {
+  Future<void> sendPostRequest() async {
     try {
       var headers = {
         'Authorization':
-            'Token 2ef828b2935f311fdec9d6b1bed469e467dbf6b2b7538b63ee8f5320c8a47848',
+            'token 2ef828b2935f311fdec9d6b1bed469e467dbf6b2b7538b63ee8f5320c8a47848',
         'Content-Type': 'application/json'
       };
       var url = Uri.parse(
