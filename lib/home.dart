@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'package:image_picker/image_picker.dart';
+
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -16,14 +16,12 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  CameraImage? cameraImage;
-  CameraController? cameraController;
+  late CameraController cameraController;
+  late List<CameraDescription> cameras;
   Timer? timer;
   String output = "";
-  late File _selectedImage;
-  String _base64Image = "";
-
-  List<CameraDescription>? cameras;
+  late File selectedImage;
+  String base64Image = "";
 
   @override
   void initState() {
@@ -35,20 +33,20 @@ class _HomeState extends State<Home> {
   @override
   void dispose() {
     timer?.cancel();
-    cameraController?.dispose();
+    cameraController.dispose();
     super.dispose();
   }
 
   Future<void> setupCamera() async {
     cameras = await availableCameras();
-    cameraController = CameraController(cameras![0], ResolutionPreset.medium);
-    await cameraController!.initialize();
+    cameraController = CameraController(cameras[0], ResolutionPreset.medium);
+    await cameraController.initialize();
     setState(() {});
   }
 
   void startRequestTimer() {
     timer = Timer.periodic(Duration(seconds: 10), (_) {
-      if (cameraImage != null) {
+      if (cameraController.value.isInitialized) {
         _getImageFromCamera();
       }
     });
@@ -56,25 +54,27 @@ class _HomeState extends State<Home> {
 
   Future<void> _getImageFromCamera() async {
     try {
-      final image = await cameraController!.takePicture();
+      await cameraController.initialize();
+      final image = await cameraController.takePicture();
 
       setState(() {
-        _selectedImage = File(image.path);
-        _convertToBase64();
+        selectedImage = File(image.path);
       });
+
+      await _convertToBase64();
     } catch (e) {
       print('Error occurred: $e');
     }
   }
 
   Future<void> _convertToBase64() async {
-    if (_selectedImage != null) {
+    if (selectedImage != null) {
       try {
-        final bytes = await _selectedImage.readAsBytes();
+        final bytes = await selectedImage.readAsBytes();
         final base64Image = base64Encode(bytes);
 
         setState(() {
-          _base64Image = base64Image;
+          this.base64Image = base64Image;
         });
 
         await sendPostRequest();
@@ -94,11 +94,12 @@ class _HomeState extends State<Home> {
       var url = Uri.parse(
           'https://0ece-190-93-37-191.ngrok-free.app/js_public/walker_callback/82cdbffa-bb03-42b6-a553-b775961eabc3/ca639c31-e3f3-4a1e-a6ad-ebc4da6c82cd?key=3a7fdc0069733f5e12e16f668f5da103');
       var body = jsonEncode({
-        "name": "interact",
-        "ctx": {"image_data": _base64Image},
-        "_req_ctx": {},
-        "snt": "urn:uuid:82cdbffa-bb03-42b6-a553-b775961eabc3"
+        'name': 'interact',
+        'ctx': {'image_data': base64Image},
+        '_req_ctx': {},
+        'snt': 'urn:uuid:82cdbffa-bb03-42b6-a553-b775961eabc3'
       });
+
       var response = await http.post(url, body: body, headers: headers);
       print('Request response: ${response.body}');
     } catch (e) {
@@ -108,7 +109,7 @@ class _HomeState extends State<Home> {
 
   @override
   Widget build(BuildContext context) {
-    if (cameras == null || !cameraController!.value.isInitialized) {
+    if (!cameraController.value.isInitialized) {
       return Scaffold(
         body: Center(
           child: CircularProgressIndicator(),
@@ -126,8 +127,8 @@ class _HomeState extends State<Home> {
               height: MediaQuery.of(context).size.height * 0.7,
               width: MediaQuery.of(context).size.width,
               child: AspectRatio(
-                aspectRatio: cameraController!.value.aspectRatio,
-                child: CameraPreview(cameraController!),
+                aspectRatio: cameraController.value.aspectRatio,
+                child: CameraPreview(cameraController),
               ),
             ),
           ),
