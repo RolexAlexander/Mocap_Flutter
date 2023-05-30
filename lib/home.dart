@@ -51,6 +51,7 @@ class _HomeState extends State<Home> {
               print("zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzxx");
               cameraImage = imageStream;
               runModel();
+              // _getImageFromCamera();
             }
           });
         });
@@ -71,13 +72,17 @@ class _HomeState extends State<Home> {
           rotation: 90,
           threshold: 0.1,
           asynch: true);
-      predictions!.forEach((element) {
-        setState(() {
+      setState(() {
+        output = "Testing";
+        predictions!.forEach((element) {
+          // setState(() {
           output = element["label"];
+          // });
         });
       });
+
       try {
-        if (predictions[0]["label"] == "2 none") {
+        if (predictions![0]["label"] == "0 none") {
           print("No user infront of camera");
           verified = false;
           newuser = false;
@@ -138,10 +143,10 @@ class _HomeState extends State<Home> {
 
   Future<void> sendPostRequest() async {
     final url =
-        'https://0ece-190-93-37-191.ngrok-free.app/js_public/walker_callback/82cdbffa-bb03-42b6-a553-b775961eabc3/ca639c31-e3f3-4a1e-a6ad-ebc4da6c82cd?key=3a7fdc0069733f5e12e16f668f5da103';
+        'https://c90d-190-93-37-91.ngrok-free.app/js_public/walker_callback/82cdbffa-bb03-42b6-a553-b775961eabc3/9b68ef56-f60f-4fc2-ad69-53e76e896c7a?key=3a7fdc0069733f5e12e16f668f5da103';
     final headers = {
       'Authorization':
-          'token 2ef828b2935f311fdec9d6b1bed469e467dbf6b2b7538b63ee8f5320c8a47848',
+          'token 48b6cea0bf64861b95eb948f97cd544866bc684ae3581628b4363ddbe48c3272',
       'Content-Type': 'application/json'
     };
     final body = jsonEncode({
