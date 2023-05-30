@@ -47,7 +47,7 @@ class _HomeState extends State<Home> {
         setState(() {
           cameracontroller!.startImageStream((imageStream) {
             count++;
-            if (count % 100 == 0) {
+            if (count % 40 == 0) {
               print("zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzxx");
               cameraImage = imageStream;
               runModel();
@@ -123,7 +123,7 @@ runModel() async {
       });
 
       // Send the POST request with the base64 image
-      // sendPostRequest();
+      sendPostRequest();
     }).catchError((error) {
       print('Error occurred: $error');
     });
