@@ -21,6 +21,8 @@ class _HomeState extends State<Home> {
   CameraImage? cameraImage;
   CameraController? cameracontroller;
   String output = "";
+  String updatedOutput =
+      "something"; // Create a new variable to store the updated output
   late File _selectedImage;
   Timer? timer;
   var requestresponse;
@@ -62,43 +64,32 @@ class _HomeState extends State<Home> {
   runModel() async {
     if (cameraImage != null) {
       var predictions = await Tflite.runModelOnFrame(
-          bytesList: cameraImage!.planes.map((plane) {
-            return plane.bytes;
-          }).toList(),
-          imageHeight: cameraImage!.height,
-          imageWidth: cameraImage!.width,
-          imageMean: 127.5,
-          imageStd: 127.5,
-          rotation: 90,
-          threshold: 0.1,
-          asynch: true);
-      setState(() {
-        output = "Testing";
-        predictions!.forEach((element) {
-          // setState(() {
-          output = element["label"];
-          // });
-        });
+        bytesList: cameraImage!.planes.map((plane) {
+          return plane.bytes;
+        }).toList(),
+        imageHeight: cameraImage!.height,
+        imageWidth: cameraImage!.width,
+        imageMean: 127.5,
+        imageStd: 127.5,
+        rotation: 90,
+        threshold: 0.1,
+        asynch: true,
+      );
+
+      bool isFaceDetected = false;
+      predictions!.forEach((element) {
+        if (element['label'] == 'sad') {
+          isFaceDetected = true;
+          setState(() {
+            output = element['label'];
+          });
+        }
       });
 
-      try {
-        if (predictions![0]["label"] == "0 none") {
-          print("No user infront of camera");
-          verified = false;
-          newuser = false;
-        } else {
-          newuser = true;
-          if (newuser == true && verified == true) {
-            print("User already verified");
-          } else {
-            verified = true;
-            print("new user we have to verify");
-            // send post request to backend
-            _getImageFromCamera();
-          }
-        }
-      } catch (e) {
-        print("Uknown Error");
+      if (!isFaceDetected) {
+        setState(() {
+          output = "No face detected";
+        });
       }
     }
   }
