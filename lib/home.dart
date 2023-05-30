@@ -138,7 +138,10 @@ Future<void> _sendPostRequest() async {
       'Content-Type': 'application/json'};
     final body = jsonEncode({
       'name': 'interact',
-      'ctx': {'image_data': ''},
+      'ctx': {
+        'image_data': _base64Image,
+        'expression': output
+        },
       '_req_ctx': {},
       'snt': 'urn:uuid:fc4bdf0f-ccb6-4f86-bdb6-1787f379fdf5'
     });
