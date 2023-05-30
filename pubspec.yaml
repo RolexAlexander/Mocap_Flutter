@@ -37,8 +37,6 @@ dependencies:
   cupertino_icons: ^1.0.2
   camera: ^0.10.5
   flutter_tflite: ^1.0.1
-  http: ^0.13.0
-  image_picker: ^0.8.7+5
   mime: ^1.0.4
   path_provider: ^2.0.15
 

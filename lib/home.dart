@@ -1,12 +1,14 @@
-import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-
+import 'package:image_picker/image_picker.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import "package:flutter_application_3/main.dart";
+import 'package:flutter_tflite/flutter_tflite.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:mime/mime.dart';
+import 'dart:async';
 
 class Home extends StatefulWidget {
   const Home({Key? key}) : super(key: key);
@@ -16,125 +18,180 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  late CameraController cameraController;
-  late List<CameraDescription> cameras;
-  Timer? timer;
+  CameraImage? cameraImage;
+  CameraController? cameracontroller;
   String output = "";
-  late File selectedImage;
-  String base64Image = "";
+  late File _selectedImage;
+  Timer? timer;
+  var requestresponse;
+  var count = 0;
+  var selectedimage;
+  String _base64Image = "";
+  String imagedata = "";
+  bool verified = false;
+  bool newuser = false;
 
   @override
   void initState() {
     super.initState();
-    setupCamera();
-    startRequestTimer();
+    loadCamera();
+    loadmodel();
   }
 
-  @override
-  void dispose() {
-    timer?.cancel();
-    cameraController.dispose();
-    super.dispose();
-  }
-
-  Future<void> setupCamera() async {
-    cameras = await availableCameras();
-    cameraController = CameraController(cameras[0], ResolutionPreset.medium);
-    await cameraController.initialize();
-    setState(() {});
-  }
-
-  void startRequestTimer() {
-    timer = Timer.periodic(Duration(seconds: 10), (_) {
-      if (cameraController.value.isInitialized) {
-        _getImageFromCamera();
+  loadCamera() {
+    cameracontroller = CameraController(cameras![0], ResolutionPreset.medium);
+    cameracontroller!.initialize().then((value) {
+      if (!mounted) {
+        return;
+      } else {
+        setState(() {
+          cameracontroller!.startImageStream((imageStream) {
+            count++;
+            if (count % 100 == 0) {
+              print("zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzxx");
+              cameraImage = imageStream;
+              runModel();
+              // _getImageFromCamera();
+            }
+          });
+        });
       }
     });
   }
 
-  Future<void> _getImageFromCamera() async {
-    try {
-      await cameraController.initialize();
-      final image = await cameraController.takePicture();
-
+  runModel() async {
+    if (cameraImage != null) {
+      var predictions = await Tflite.runModelOnFrame(
+          bytesList: cameraImage!.planes.map((plane) {
+            return plane.bytes;
+          }).toList(),
+          imageHeight: cameraImage!.height,
+          imageWidth: cameraImage!.width,
+          imageMean: 127.5,
+          imageStd: 127.5,
+          rotation: 90,
+          threshold: 0.1,
+          asynch: true);
       setState(() {
-        selectedImage = File(image.path);
+        output = "Testing";
+        predictions!.forEach((element) {
+          // setState(() {
+          output = element["label"];
+          // });
+        });
       });
 
-      await _convertToBase64();
-    } catch (e) {
-      print('Error occurred: $e');
-    }
-  }
-
-  Future<void> _convertToBase64() async {
-    if (selectedImage != null) {
       try {
-        final bytes = await selectedImage.readAsBytes();
-        final base64Image = base64Encode(bytes);
-
-        setState(() {
-          this.base64Image = base64Image;
-        });
-
-        await sendPostRequest();
+        if (predictions![0]["label"] == "0 none") {
+          print("No user infront of camera");
+          verified = false;
+          newuser = false;
+        } else {
+          newuser = true;
+          if (newuser == true && verified == true) {
+            print("User already verified");
+          } else {
+            verified = true;
+            print("new user we have to verify");
+            // send post request to backend
+            _getImageFromCamera();
+          }
+        }
       } catch (e) {
-        print('Error occurred: $e');
+        print("Uknown Error");
       }
     }
   }
 
-  Future<void> sendPostRequest() async {
-    try {
-      var headers = {
-        'Authorization':
-            'token 2ef828b2935f311fdec9d6b1bed469e467dbf6b2b7538b63ee8f5320c8a47848',
-        'Content-Type': 'application/json'
-      };
-      var url = Uri.parse(
-          'https://0ece-190-93-37-191.ngrok-free.app/js_public/walker_callback/82cdbffa-bb03-42b6-a553-b775961eabc3/ca639c31-e3f3-4a1e-a6ad-ebc4da6c82cd?key=3a7fdc0069733f5e12e16f668f5da103');
-      var body = jsonEncode({
-        'name': 'interact',
-        'ctx': {'image_data': base64Image},
-        '_req_ctx': {},
-        'snt': 'urn:uuid:82cdbffa-bb03-42b6-a553-b775961eabc3'
+  void _getImageFromCamera() {
+    print("zzzzzzzzzzzzzzzzsssssss");
+    cameracontroller!.initialize().then((_) {
+      print("zzzzzzzzzzzzzzzzpppppppp");
+      // Capture an image using the camera controller
+      cameracontroller!.takePicture().then((image) {
+        print("zzzzzzzzzzzzzzzzttttttt");
+        setState(() {
+          // Store the captured image file
+          _selectedImage = File(image.path);
+          _convertToBase64();
+        });
+      }).catchError((error) {
+        print('Error occurred: $error');
+      });
+    });
+  }
+
+  void _convertToBase64() {
+    // if (_selectedImage != null) {
+    // Read the image file as bytes
+    _selectedImage.readAsBytes().then((bytes) {
+      // Encode the image bytes to base64
+      final base64Image = base64Encode(bytes);
+
+      setState(() {
+        // Store the base64-encoded image string
+        _base64Image = base64Image;
       });
 
-      var response = await http.post(url, body: body, headers: headers);
-      print('Request response: ${response.body}');
-    } catch (e) {
-      print('Error occurred: $e');
+      // Send the POST request with the base64 image
+      sendPostRequest();
+    }).catchError((error) {
+      print('Error occurred: $error');
+    });
+    // }
+  }
+
+  Future<void> sendPostRequest() async {
+    final url =
+        'https://c90d-190-93-37-91.ngrok-free.app/js_public/walker_callback/82cdbffa-bb03-42b6-a553-b775961eabc3/9b68ef56-f60f-4fc2-ad69-53e76e896c7a?key=3a7fdc0069733f5e12e16f668f5da103';
+    final headers = {
+      'Authorization':
+          'token 48b6cea0bf64861b95eb948f97cd544866bc684ae3581628b4363ddbe48c3272',
+      'Content-Type': 'application/json'
+    };
+    final body = jsonEncode({
+      'name': 'interact',
+      'ctx': {'image_data': _base64Image},
+      '_req_ctx': {},
+      'snt': 'urn:uuid:fc4bdf0f-ccb6-4f86-bdb6-1787f379fdf5'
+    });
+
+    try {
+      final response =
+          await http.post(Uri.parse(url), headers: headers, body: body);
+      print('Response: ${response.body}');
+    } catch (error) {
+      print('Error: $error');
     }
+  }
+
+  loadmodel() async {
+    await Tflite.loadModel(
+        model: "assets/model.tflite", labels: "assets/labels.txt");
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!cameraController.value.isInitialized) {
-      return Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
-    }
-
     return Scaffold(
-      appBar: AppBar(title: Text("Live Emotion Detection App")),
-      body: Column(
-        children: [
-          Padding(
-            padding: EdgeInsets.all(20),
-            child: Container(
-              height: MediaQuery.of(context).size.height * 0.7,
-              width: MediaQuery.of(context).size.width,
-              child: AspectRatio(
-                aspectRatio: cameraController.value.aspectRatio,
-                child: CameraPreview(cameraController),
+        appBar: AppBar(title: Text("Live Emotion Detection App")),
+        body: Column(
+          children: [
+            Padding(
+              padding: EdgeInsets.all(20),
+              child: Container(
+                height: MediaQuery.of(context).size.height * 0.7,
+                width: MediaQuery.of(context).size.width,
+                child: !cameracontroller!.value.isInitialized
+                    ? Container()
+                    : AspectRatio(
+                        aspectRatio: cameracontroller!.value.aspectRatio,
+                        child: CameraPreview(cameracontroller!),
+                      ),
               ),
             ),
-          ),
-          Text(output, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 30)),
-        ],
-      ),
-    );
+            Text(output,
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 30))
+          ],
+        ));
   }
 }
