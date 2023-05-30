@@ -76,7 +76,7 @@ runModel() async {
 
     bool isFaceDetected = false;
     predictions!.forEach((element) {
-      if (element['label'] == 'sad') {
+      if (element['label'] == '1 sad') {
         isFaceDetected = true;
         setState(() {
           output = element['label'];
