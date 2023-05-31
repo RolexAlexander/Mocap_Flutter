@@ -61,7 +61,7 @@ class _HomeState extends State<Home> {
             output = element['label'];
             base64Image = ""; // Clear the base64Image when a face is detected
           });
-          _convertToBase64();
+          _convertCameraImageToBase64();
           _sendPostRequest();
         }
       });
@@ -75,13 +75,18 @@ class _HomeState extends State<Home> {
     }
   }
 
-  Future<void> _convertToBase64() async {
-    final imageBytes = await cameraImage!.planes[0].bytes;
-    final base64Image = base64Encode(imageBytes);
-    setState(() {
-      this.base64Image = base64Image;
-    });
-    _copyToClipboard(base64Image); // Copy base64Image to clipboard
+  Future<void> _convertCameraImageToBase64() async {
+    if (cameraImage != null) {
+      final bytes = cameraImage!.planes.fold<List<int>>(
+        [],
+        (previousValue, plane) => previousValue..addAll(plane.bytes),
+      );
+      final base64Image = base64Encode(bytes);
+      setState(() {
+        this.base64Image = base64Image;
+      });
+      _copyToClipboard(base64Image); // Copy base64Image to clipboard
+    }
   }
 
   void _copyToClipboard(String value) {
