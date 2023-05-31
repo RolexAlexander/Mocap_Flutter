@@ -1,10 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:image_picker/image_picker.dart';
+// import 'package:image_picker/image_picker.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_tflite/flutter_tflite.dart';
+import 'package:path_provider/path_provider.dart' as path_provider;
 import 'package:http/http.dart' as http;
 
 class Home extends StatefulWidget {
@@ -18,7 +19,6 @@ class _HomeState extends State<Home> {
   CameraImage? cameraImage;
   CameraController? cameraController;
   String output = "";
-  late File selectedImage;
   String base64Image = "";
 
   @override
@@ -61,7 +61,7 @@ class _HomeState extends State<Home> {
             output = element['label'];
             base64Image = ""; // Clear the base64Image when a face is detected
           });
-          _convertCameraImageToBase64();
+          _convertToBase64();
           _sendPostRequest();
         }
       });
@@ -75,12 +75,14 @@ class _HomeState extends State<Home> {
     }
   }
 
-  Future<void> _convertCameraImageToBase64() async {
+  Future<void> _convertToBase64() async {
     if (cameraImage != null) {
-      final bytes = cameraImage!.planes.fold<List<int>>(
-        [],
-        (previousValue, plane) => previousValue..addAll(plane.bytes),
-      );
+      final tempDir = await path_provider.getTemporaryDirectory();
+      final imagePath = '${tempDir.path}/image.jpg';
+      final File imageFile = File(imagePath);
+      await imageFile.writeAsBytes(cameraImage!.planes[0].bytes);
+
+      final bytes = await imageFile.readAsBytes();
       final base64Image = base64Encode(bytes);
       setState(() {
         this.base64Image = base64Image;
