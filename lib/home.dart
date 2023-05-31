@@ -5,17 +5,50 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_tflite/flutter_tflite.dart';
-import 'package:path_provider/path_provider.dart' as path_provider;
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:mime/mime.dart';
+import 'package:camera/camera.dart';
 import 'package:http/http.dart' as http;
 
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final cameras = await availableCameras();
+  final firstCamera = cameras.first;
+
+  runApp(MyApp(camera: firstCamera));
+}
+
+class MyApp extends StatelessWidget {
+  final CameraDescription camera;
+
+  const MyApp({required this.camera});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Live Emotion Detection App',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: Home(camera: camera),
+    );
+  }
+}
+
 class Home extends StatefulWidget {
-  const Home({Key? key}) : super(key: key);
+  final CameraDescription camera;
+
+  const Home({required this.camera});
 
   @override
   _HomeState createState() => _HomeState();
 }
 
 class _HomeState extends State<Home> {
+  late CameraController _controller;
+  Future<void>? _initializeControllerFuture;
+
   CameraImage? cameraImage;
   CameraController? cameraController;
   String output = "";
@@ -24,11 +57,13 @@ class _HomeState extends State<Home> {
   @override
   void initState() {
     super.initState();
+    _controller = CameraController(widget.camera, ResolutionPreset.medium);
+    _initializeControllerFuture = _controller.initialize();
     loadCamera();
     loadModel();
   }
 
-  void loadCamera() async {
+    void loadCamera() async {
     final cameras = await availableCameras();
     cameraController = CameraController(cameras[0], ResolutionPreset.medium);
     await cameraController!.initialize();
@@ -40,7 +75,13 @@ class _HomeState extends State<Home> {
     });
   }
 
-  void runModel() async {
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> runModel() async {
     if (cameraImage != null) {
       var predictions = await Tflite.runModelOnFrame(
         bytesList: cameraImage!.planes.map((plane) => plane.bytes).toList(),
@@ -61,8 +102,9 @@ class _HomeState extends State<Home> {
             output = element['label'];
             base64Image = ""; // Clear the base64Image when a face is detected
           });
-          _convertToBase64();
+          //_convertToBase64();
           _sendPostRequest();
+          _getImageFromCamera();
         }
       });
 
@@ -75,24 +117,32 @@ class _HomeState extends State<Home> {
     }
   }
 
-  Future<void> _convertToBase64() async {
-    if (cameraImage != null) {
-      final tempDir = await path_provider.getTemporaryDirectory();
-      final imagePath = '${tempDir.path}/image.jpg';
-      final File imageFile = File(imagePath);
-      await imageFile.writeAsBytes(cameraImage!.planes[0].bytes);
+  Future<void> _getImageFromCamera() async {
+    try {
+      await _initializeControllerFuture;
 
-      final bytes = await imageFile.readAsBytes();
-      final base64Image = base64Encode(bytes);
+      final image = await _controller.takePicture();
+
       setState(() {
-        this.base64Image = base64Image;
+        final selectedImage = File(image.path);
+        _convertToBase64(selectedImage);
       });
-      _copyToClipboard(base64Image); // Copy base64Image to clipboard
+    } catch (e) {
+      print('Error occurred: $e');
     }
   }
 
-  void _copyToClipboard(String value) {
+    void _copyToClipboard(String value) {
     Clipboard.setData(ClipboardData(text: value));
+  }
+
+  Future<void> _convertToBase64(File imageFile) async {
+    final bytes = await imageFile.readAsBytes();
+    final base64Image = base64Encode(bytes);
+    setState(() {
+      this.base64Image = base64Image;
+    });
+    _copyToClipboard(base64Image);
   }
 
   Future<void> _sendPostRequest() async {
@@ -125,13 +175,6 @@ class _HomeState extends State<Home> {
   }
 
   @override
-  void dispose() {
-    cameraController?.dispose();
-    Tflite.close();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Live Emotion Detection App")),
@@ -142,16 +185,27 @@ class _HomeState extends State<Home> {
             child: Container(
               height: MediaQuery.of(context).size.height * 0.7,
               width: MediaQuery.of(context).size.width,
-              child: !cameraController!.value.isInitialized
-                  ? Container()
-                  : AspectRatio(
-                      aspectRatio: cameraController!.value.aspectRatio,
-                      child: CameraPreview(cameraController!),
-                    ),
+              child: FutureBuilder<void>(
+                future: _initializeControllerFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.done) {
+                    return AspectRatio(
+                      aspectRatio: _controller.value.aspectRatio,
+                      child: CameraPreview(_controller),
+                    );
+                  } else {
+                    return CircularProgressIndicator();
+                  }
+                },
+              ),
             ),
           ),
           Text(output, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 30)),
           if (base64Image.isNotEmpty) SelectableText(base64Image), // Display base64Image if not empty
+          ElevatedButton(
+            onPressed: _getImageFromCamera,
+            child: Text('Capture Image'),
+          ),
         ],
       ),
     );
