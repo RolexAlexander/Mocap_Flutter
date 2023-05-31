@@ -3,11 +3,10 @@ import 'package:flutter_application_3/home.dart';
 import "package:camera/camera.dart";
 
 List<CameraDescription>? cameras;
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   cameras = await availableCameras();
-  runApp(MyApp());
+  runApp(new MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -16,9 +15,8 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      theme: ThemeData(primaryColor: Colors.deepPurple),
-      debugShowCheckedModeBanner: false,
-      home: Home(camera: cameras![0]), // Pass the camera description here
-    );
+        theme: ThemeData(primaryColor: Colors.deepPurple),
+        debugShowCheckedModeBanner: false,
+        home: Home());
   }
 }
