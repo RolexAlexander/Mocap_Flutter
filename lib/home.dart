@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
@@ -47,26 +48,16 @@ class _HomeState extends State<Home> {
       if (!mounted) {
         return;
       } else {
-        // if (newuser == true && verified == true) {
-        //   print("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT");
-        //   cameracontroller!.takePicture().then((image) {
-        //     print("ttttttttttttttttttttttttttttttttttttt");
-        //     setState(() {
-        //       // Store the captured image file
-        //       _selectedImage = File(image.path);
-        //       _convertToBase64();
-        //     });
-        //   }).catchError((error) {
-        //     print('Error occurred: $error');
-        //   });
-        // }
         setState(() {
           cameracontroller!.startImageStream((imageStream) {
             count++;
             if (count % 100 == 0) {
               print("zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzxx");
               cameraImage = imageStream;
-              runModel();
+              List<Uint8List> imagedata = imageStream.planes.map((plane) {
+                return plane.bytes;
+              }).toList();
+              runModel(imagedata);
               // _getImageFromCamera();
             }
           });
@@ -75,12 +66,23 @@ class _HomeState extends State<Home> {
     });
   }
 
-  runModel() async {
+  List<int> convertListOfUint8List(List<Uint8List> list) {
+    List<int> newlist = [];
+    for (final item in list) {
+      newlist.addAll(item);
+    }
+    return newlist;
+  }
+
+  Uint8List concatenatePlanes(List<Uint8List> planes) {
+    final planeBytes = planes.map((plane) => plane).toList();
+    return Uint8List.fromList(planeBytes.expand((element) => element).toList());
+  }
+
+  runModel(List<Uint8List> imagedata) async {
     if (cameraImage != null) {
       var predictions = await Tflite.runModelOnFrame(
-        bytesList: cameraImage!.planes.map((plane) {
-          return plane.bytes;
-        }).toList(),
+        bytesList: imagedata,
         imageHeight: cameraImage!.height,
         imageWidth: cameraImage!.width,
         imageMean: 127.5,
@@ -91,6 +93,7 @@ class _HomeState extends State<Home> {
       );
 
       bool isFaceDetected = false;
+      print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
       predictions!.forEach((element) {
         if (element['label'] == '1 sad') {
           isFaceDetected = true;
@@ -118,121 +121,17 @@ class _HomeState extends State<Home> {
           verified = true;
           print("new user we have to verify");
           print("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT");
-          cameracontroller!.initialize().then((_) {
-            print("pppppppppppppppppppppppppppppppppppppp");
-            // Capture an image using the camera controller
-            cameracontroller!.takePicture().then((image) {
-              print("ttttttttttttttttttttttttttttttttttttt");
-              setState(() {
-                // Store the captured image file
-                _selectedImage = File(image.path);
-                _convertToBase64();
-                loadCamera();
-              });
-            }).catchError((error) {
-              print('xxxxxxxxxxxxxxxxxxxxxxxxxxError occurred: $error');
-            });
-          });
-          // send post request to backend
-          // sendPostRequest();
+
+          String base64Image = base64Encode(concatenatePlanes(imagedata));
+          print("base64Imagexxxxxxxxxxxxxxxxxx");
+          print(base64Image);
+          sendPostRequest(base64Image);
         }
       }
-      // } catch (e) {
-      // print("Uknown Error");
-      // }
     }
   }
-  // runModel() async {
-  //   if (cameraImage != null) {
-  //     var predictions = await Tflite.runModelOnFrame(
-  //       bytesList: cameraImage!.planes.map((plane) {
-  //         return plane.bytes;
-  //       }).toList(),
-  //       imageHeight: cameraImage!.height,
-  //       imageWidth: cameraImage!.width,
-  //       imageMean: 127.5,
-  //       imageStd: 127.5,
-  //       rotation: 90,
-  //       threshold: 0.1,
-  //       asynch: true,
-  //     );
 
-  //     bool isFaceDetected = false;
-  //     predictions!.forEach((element) {
-  //       if (element['label'] == '1 sad') {
-  //         isFaceDetected = true;
-  //         setState(() {
-  //           output = element['label'];
-  //         });
-  //       }
-  //     });
-
-  //     if (!isFaceDetected) {
-  //       setState(() {
-  //         output = "No face detected";
-  //       });
-  //     }
-  // try {
-  // if (predictions[0]["label"] == "0 none") {
-  //   print("No user infront of camera");
-  //   verified = false;
-  //   newuser = false;
-  // } else {
-  //   newuser = true;
-  //   if (newuser == true && verified == true) {
-  //     print("User already verified");
-  //   } else {
-  //     verified = true;
-  //     print("new user we have to verify");
-  //     // send post request to backend
-  //     // _getImageFromCamera();
-  //   }
-  // }
-  // } catch (e) {
-  //   print("Uknown Error");
-  // }
-  //   }
-  // }
-
-  void _getImageFromCamera() {
-    print("ssssssssssssssssssssssssssssssssssssss");
-    cameracontroller!.initialize().then((_) {
-      print("pppppppppppppppppppppppppppppppppppppp");
-      // Capture an image using the camera controller
-      cameracontroller!.takePicture().then((image) {
-        print("ttttttttttttttttttttttttttttttttttttt");
-        setState(() {
-          // Store the captured image file
-          _selectedImage = File(image.path);
-          _convertToBase64();
-        });
-      }).catchError((error) {
-        print('Error occurred: $error');
-      });
-    });
-  }
-
-  void _convertToBase64() {
-    // if (_selectedImage != null) {
-    // Read the image file as bytes
-    _selectedImage.readAsBytes().then((bytes) {
-      // Encode the image bytes to base64
-      final base64Image = base64Encode(bytes);
-
-      setState(() {
-        // Store the base64-encoded image string
-        _base64Image = base64Image;
-      });
-
-      // Send the POST request with the base64 image
-      sendPostRequest();
-    }).catchError((error) {
-      print('Error occurred: $error');
-    });
-    // }
-  }
-
-  Future<void> sendPostRequest() async {
+  Future<void> sendPostRequest(String base64Image) async {
     final url =
         'https://e0da-190-93-37-93.ngrok-free.app/js_public/walker_callback/82cdbffa-bb03-42b6-a553-b775961eabc3/37d9b3fc-9437-4b6b-9891-759733d69d2f?key=3a7fdc0069733f5e12e16f668f5da103';
     final headers = {
@@ -242,7 +141,7 @@ class _HomeState extends State<Home> {
     };
     final body = jsonEncode({
       'name': 'interact',
-      'ctx': {'image_data': _base64Image},
+      'ctx': {'image_data': base64Image},
       '_req_ctx': {},
       'snt': 'urn:uuid:fc4bdf0f-ccb6-4f86-bdb6-1787f379fdf5'
     });
