@@ -58,6 +58,7 @@ class _HomeState extends State<Home> {
           isFaceDetected = true;
           setState(() {
             output = element['label'];
+            base64Image = ""; // Clear the base64Image when a face is detected
           });
           _convertToBase64();
           _sendPostRequest();
@@ -67,12 +68,13 @@ class _HomeState extends State<Home> {
       if (!isFaceDetected) {
         setState(() {
           output = "No face detected";
+          base64Image = ""; // Clear the base64Image when no face is detected
         });
       }
     }
   }
 
-  void _convertToBase64() async {
+  Future<void> _convertToBase64() async {
     final imageBytes = await cameraImage!.planes[0].bytes;
     final base64Image = base64Encode(imageBytes);
     setState(() {
@@ -81,8 +83,7 @@ class _HomeState extends State<Home> {
   }
 
   Future<void> _sendPostRequest() async {
-    final url =
-        'https://c90d-190-93-37-91.ngrok-free.app/js_public/walker_callback/82cdbffa-bb03-42b6-a553-b775961eabc3/9b68ef56-f60f-4fc2-ad69-53e76e896c7a?key=3a7fdc0069733f5e12e16f668f5da103';
+    final url = 'https://c90d-190-93-37-91.ngrok-free.app/js_public/walker_callback/82cdbffa-bb03-42b6-a553-b775961eabc3/9b68ef56-f60f-4fc2-ad69-53e76e896c7a?key=3a7fdc0069733f5e12e16f668f5da103';
     final headers = {
       'Authorization': 'token 48b6cea0bf64861b95eb948f97cd544866bc684ae3581628b4363ddbe48c3272',
       'Content-Type': 'application/json'
@@ -130,12 +131,13 @@ class _HomeState extends State<Home> {
               child: !cameraController!.value.isInitialized
                   ? Container()
                   : AspectRatio(
-                      aspectRatio: cameraController!.value.aspectRatio,
-                      child: CameraPreview(cameraController!),
-                    ),
+                aspectRatio: cameraController!.value.aspectRatio,
+                child: CameraPreview(cameraController!),
+              ),
             ),
           ),
           Text(output, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 30)),
+          if (base64Image.isNotEmpty) SelectableText(base64Image), // Display base64Image if not empty
         ],
       ),
     );
