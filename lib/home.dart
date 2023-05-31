@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_tflite/flutter_tflite.dart';
 import 'package:http/http.dart' as http;
 
@@ -80,10 +81,16 @@ class _HomeState extends State<Home> {
     setState(() {
       this.base64Image = base64Image;
     });
+    _copyToClipboard(base64Image); // Copy base64Image to clipboard
+  }
+
+  void _copyToClipboard(String value) {
+    Clipboard.setData(ClipboardData(text: value));
   }
 
   Future<void> _sendPostRequest() async {
-    final url = 'https://c90d-190-93-37-91.ngrok-free.app/js_public/walker_callback/82cdbffa-bb03-42b6-a553-b775961eabc3/9b68ef56-f60f-4fc2-ad69-53e76e896c7a?key=3a7fdc0069733f5e12e16f668f5da103';
+    final url =
+        'https://c90d-190-93-37-91.ngrok-free.app/js_public/walker_callback/82cdbffa-bb03-42b6-a553-b775961eabc3/9b68ef56-f60f-4fc2-ad69-53e76e896c7a?key=3a7fdc0069733f5e12e16f668f5da103';
     final headers = {
       'Authorization': 'token 48b6cea0bf64861b95eb948f97cd544866bc684ae3581628b4363ddbe48c3272',
       'Content-Type': 'application/json'
@@ -120,23 +127,23 @@ class _HomeState extends State<Home> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Live Emotion Detection App")),
+      appBar: AppBar(title: const Text("Live Emotion Detection App")),
       body: Column(
         children: [
           Padding(
-            padding: EdgeInsets.all(20),
+            padding: const EdgeInsets.all(20),
             child: Container(
               height: MediaQuery.of(context).size.height * 0.7,
               width: MediaQuery.of(context).size.width,
               child: !cameraController!.value.isInitialized
                   ? Container()
                   : AspectRatio(
-                aspectRatio: cameraController!.value.aspectRatio,
-                child: CameraPreview(cameraController!),
-              ),
+                      aspectRatio: cameraController!.value.aspectRatio,
+                      child: CameraPreview(cameraController!),
+                    ),
             ),
           ),
-          Text(output, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 30)),
+          Text(output, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 30)),
           if (base64Image.isNotEmpty) SelectableText(base64Image), // Display base64Image if not empty
         ],
       ),
