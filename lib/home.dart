@@ -28,7 +28,8 @@ class _HomeState extends State<Home> {
   var requestresponse;
   var count = 0;
   var selectedimage;
-  String _base64Image = "";
+  String _base64Image =
+      "This is just a test. I will win all chess games this friday!";
   String imagedata = "";
   bool verified = false;
   bool newuser = false;
@@ -46,6 +47,19 @@ class _HomeState extends State<Home> {
       if (!mounted) {
         return;
       } else {
+        // if (newuser == true && verified == true) {
+        //   print("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT");
+        //   cameracontroller!.takePicture().then((image) {
+        //     print("ttttttttttttttttttttttttttttttttttttt");
+        //     setState(() {
+        //       // Store the captured image file
+        //       _selectedImage = File(image.path);
+        //       _convertToBase64();
+        //     });
+        //   }).catchError((error) {
+        //     print('Error occurred: $error');
+        //   });
+        // }
         setState(() {
           cameracontroller!.startImageStream((imageStream) {
             count++;
@@ -92,34 +106,101 @@ class _HomeState extends State<Home> {
         });
       }
       // try {
-      //   if (predictions[0]["label"] == "0 none") {
-      //     print("No user infront of camera");
-      //     verified = false;
-      //     newuser = false;
-      //   } else {
-      //     newuser = true;
-      //     if (newuser == true && verified == true) {
-      //       print("User already verified");
-      //     } else {
-      //       verified = true;
-      //       print("new user we have to verify");
-      //       // send post request to backend
-      //       _getImageFromCamera();
-      //     }
-      //   }
+      if (output == "No face detected") {
+        print("No user infront of camera");
+        verified = false;
+        newuser = false;
+      } else {
+        newuser = true;
+        if (newuser == true && verified == true) {
+          print("User already verified");
+        } else {
+          verified = true;
+          print("new user we have to verify");
+          print("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT");
+          cameracontroller!.initialize().then((_) {
+            print("pppppppppppppppppppppppppppppppppppppp");
+            // Capture an image using the camera controller
+            cameracontroller!.takePicture().then((image) {
+              print("ttttttttttttttttttttttttttttttttttttt");
+              setState(() {
+                // Store the captured image file
+                _selectedImage = File(image.path);
+                _convertToBase64();
+                loadCamera();
+              });
+            }).catchError((error) {
+              print('xxxxxxxxxxxxxxxxxxxxxxxxxxError occurred: $error');
+            });
+          });
+          // send post request to backend
+          // sendPostRequest();
+        }
+      }
       // } catch (e) {
-      //   print("Uknown Error");
+      // print("Uknown Error");
       // }
     }
   }
+  // runModel() async {
+  //   if (cameraImage != null) {
+  //     var predictions = await Tflite.runModelOnFrame(
+  //       bytesList: cameraImage!.planes.map((plane) {
+  //         return plane.bytes;
+  //       }).toList(),
+  //       imageHeight: cameraImage!.height,
+  //       imageWidth: cameraImage!.width,
+  //       imageMean: 127.5,
+  //       imageStd: 127.5,
+  //       rotation: 90,
+  //       threshold: 0.1,
+  //       asynch: true,
+  //     );
+
+  //     bool isFaceDetected = false;
+  //     predictions!.forEach((element) {
+  //       if (element['label'] == '1 sad') {
+  //         isFaceDetected = true;
+  //         setState(() {
+  //           output = element['label'];
+  //         });
+  //       }
+  //     });
+
+  //     if (!isFaceDetected) {
+  //       setState(() {
+  //         output = "No face detected";
+  //       });
+  //     }
+  // try {
+  // if (predictions[0]["label"] == "0 none") {
+  //   print("No user infront of camera");
+  //   verified = false;
+  //   newuser = false;
+  // } else {
+  //   newuser = true;
+  //   if (newuser == true && verified == true) {
+  //     print("User already verified");
+  //   } else {
+  //     verified = true;
+  //     print("new user we have to verify");
+  //     // send post request to backend
+  //     // _getImageFromCamera();
+  //   }
+  // }
+  // } catch (e) {
+  //   print("Uknown Error");
+  // }
+  //   }
+  // }
 
   void _getImageFromCamera() {
-    print("zzzzzzzzzzzzzzzzsssssss");
+    print("ssssssssssssssssssssssssssssssssssssss");
     cameracontroller!.initialize().then((_) {
-      print("zzzzzzzzzzzzzzzzpppppppp");
+      print("pppppppppppppppppppppppppppppppppppppp");
       // Capture an image using the camera controller
       cameracontroller!.takePicture().then((image) {
-        print("zzzzzzzzzzzzzzzzttttttt");
+        print("ttttttttttttttttttttttttttttttttttttt");
         setState(() {
           // Store the captured image file
           _selectedImage = File(image.path);
@@ -153,10 +234,10 @@ class _HomeState extends State<Home> {
 
   Future<void> sendPostRequest() async {
     final url =
-        'https://c90d-190-93-37-91.ngrok-free.app/js_public/walker_callback/82cdbffa-bb03-42b6-a553-b775961eabc3/9b68ef56-f60f-4fc2-ad69-53e76e896c7a?key=3a7fdc0069733f5e12e16f668f5da103';
+        'https://e0da-190-93-37-93.ngrok-free.app/js_public/walker_callback/82cdbffa-bb03-42b6-a553-b775961eabc3/37d9b3fc-9437-4b6b-9891-759733d69d2f?key=3a7fdc0069733f5e12e16f668f5da103';
     final headers = {
       'Authorization':
-          'token 48b6cea0bf64861b95eb948f97cd544866bc684ae3581628b4363ddbe48c3272',
+          'token 70c78e859cc1bd1b2a8c270b3ccbceadd8db2c313c0788232ceae52a3e4e9430',
       'Content-Type': 'application/json'
     };
     final body = jsonEncode({
